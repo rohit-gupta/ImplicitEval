@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Signup</h1>
+    <form method="POST">
+        <div>
+            <label>Username:</label>
+            <input type="text" name="username" required minlength="3">
+        </div>
+        <button type="submit">Signup</button>
+    </form>
+    <p>Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
+{% endblock %}

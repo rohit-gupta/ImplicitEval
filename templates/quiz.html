@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Video Question</h1>
+    
+    {% if question %}
+        <div>
+            <video id="video-player" controls>
+                <source src="{{ video_url }}" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+        
+        <div>
+            <h2>{{ question.question_text }}</h2>
+            
+            <form method="POST" action="{{ url_for('submit_answer') }}">
+                <input type="hidden" name="question_id" value="{{ question.question_id }}">
+                
+                <h3>Answer the question:</h3>
+                {% if question.options %}
+                    {% for option_key, option_text in question.options.items() %}
+                        <div class="option">
+                            <input type="radio" id="option-{{ option_key }}" name="selected_choice" value="{{ option_key }}" required>
+                            <label for="option-{{ option_key }}">{{ option_key }}. {{ option_text }}</label>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    {% for choice in question.answer_choices %}
+                        <div class="option">
+                            <input type="radio" id="option-{{ loop.index0 }}" name="selected_choice" value="{{ loop.index0 }}" required>
+                            <label for="option-{{ loop.index0 }}">{{ choice }}</label>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                
+                <h3>Classify this question:</h3>
+                <div style="margin-bottom: 15px;">
+                    <select name="class_label">
+                        <option value="">-- Select a class label --</option>
+                        {% for label in class_labels %}
+                            <option value="{{ label }}" {% if existing_label == label %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <button type="submit">Submit</button>
+            </form>
+        </div>
+        
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const video = document.getElementById('video-player');
+                {% if question.question_start_time %}
+                    video.addEventListener('loadedmetadata', function() {
+                        video.currentTime = {{ question.question_start_time }};
+                    });
+                {% endif %}
+            });
+        </script>
+    {% else %}
+        <p>No more questions available.</p>
+        <a href="{{ url_for('stats') }}">View Stats</a>
+    {% endif %}
+{% endblock %}
+

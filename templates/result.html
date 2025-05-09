@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Question Result</h1>
+    
+    {% if correct %}
+        <div style="background: #d4edda; padding: 15px; border-radius: 5px;">
+            <h2>Correct!</h2>
+        </div>
+    {% else %}
+        <div style="background: #f8d7da; padding: 15px; border-radius: 5px;">
+            <h2>Incorrect</h2>
+        </div>
+    {% endif %}
+    
+    <div style="margin-top: 20px;">
+        <a href="{{ url_for('quiz') }}">Next Question</a>
+    </div>
+{% endblock %}

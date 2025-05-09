@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Statistics</h1>
+    
+    <h2>User Statistics</h2>
+    <table>
+        <tr>
+            <th>Username</th>
+            <th>Correct</th>
+            <th>Total</th>
+            <th>Accuracy</th>
+        </tr>
+        {% for username, stats in user_stats.items() %}
+            <tr>
+                <td>{{ username }}</td>
+                <td>{{ stats[0] }}</td>
+                <td>{{ stats[1] }}</td>
+                <td>{{ (stats[0] / stats[1] * 100)|round(1) if stats[1] > 0 else 0 }}%</td>
+            </tr>
+        {% endfor %}
+    </table>
+    
+    <h2>Category Statistics</h2>
+    <table>
+        <tr>
+            <th>Category</th>
+            <th>Correct</th>
+            <th>Total</th>
+            <th>Accuracy</th>
+        </tr>
+        {% for category, stats in cat_stats.items() %}
+            <tr>
+                <td>{{ category }}</td>
+                <td>{{ stats[0] }}</td>
+                <td>{{ stats[1] }}</td>
+                <td>{{ (stats[0] / stats[1] * 100)|round(1) if stats[1] > 0 else 0 }}%</td>
+            </tr>
+        {% endfor %}
+    </table>
+    
+    <h2>Question Classification Statistics</h2>
+    <table>
+        <tr>
+            <th>Class Label</th>
+            <th>Count</th>
+        </tr>
+        {% for label in class_labels %}
+            <tr>
+                <td>{{ label }}</td>
+                <td>{{ label_counts.get(label, 0) }}</td>
+            </tr>
+        {% endfor %}
+    </table>
+    
+    <h2>User × Category Matrix</h2>
+    <table>
+        <tr>
+            <th>User \ Category</th>
+            {% for category in cat_stats.keys() %}
+                <th>{{ category }}</th>
+            {% endfor %}
+        </tr>
+        {% for username, categories in user_cat_stats.items() %}
+            <tr>
+                <td>{{ username }}</td>
+                {% for category in cat_stats.keys() %}
+                    <td>
+                        {% if category in categories %}
+                            {% set stats = categories[category] %}
+                            {% if stats[1] > 0 %}
+                                {{ (stats[0] / stats[1] * 100)|round(1) }}%
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </td>
+                {% endfor %}
+            </tr>
+        {% endfor %}
+    </table>
+{% endblock %}
