@@ -15,16 +15,16 @@ LABELS_FILE = os.path.join(DATA_DIR, 'question_labels.csv')
 
 # Class labels
 CLASS_LABELS = [
-    "1A. Lateral location (left/right/beside)",
-    "1B. Front-Back & Proximity",
-    "1C. Vertical position",
-    "2. Motion and Trajectory",
-    "3. Viewpoint and Visibility",
-    "4. Unstated Causal and Motivational Reasoning",
-    "5. Social Interaction and Relationships",
-    "6. Physical and Environmental Context",
-    "7. Inferred Counting",
-    "8. Other"
+    "Spatial Configuration",
+    "Lateral location (left / right / beside)",
+    "Front–Back & Proximity",
+    "Vertical position",
+    "Motion and Trajectory",
+    "Viewpoint and Visibility",
+    "Causal and Motivational Reasoning",
+    "Social Interaction and Relationships",
+    "Physical and Environmental Context",
+    "Counting"
 ]
 
 # Create files if they don't exist
@@ -112,7 +112,7 @@ def import_questions():
                         try:
                             question = json.loads(line.decode('utf-8'))
                             if all(k in question for k in ['video_id', 'question_id', 'question_text', 
-                                                           'answer_choices', 'correct_answer', 'category']):
+                                                           'answer_choices', 'correct_answer', 'final_category']):
                                 outfile.write(json.dumps(question) + '\n')
                                 imported += 1
                         except json.JSONDecodeError:
@@ -284,7 +284,7 @@ def stats():
             
             # Update category stats if question exists
             if qid in questions:
-                category = questions[qid]['category']
+                category = questions[qid]['final_category']
                 cat_stats[category][0] += int(correct)
                 cat_stats[category][1] += 1
                 user_cat_stats[username][category][0] += int(correct)
