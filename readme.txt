@@ -14,7 +14,10 @@ mkdir -p data static/videos
 pip install flask
 ```
 
-3. Run the application:
+3. Add videos to static/videos/
+
+
+4. Run the application:
 ```
 export FLASK_APP=app.py
 flask run
