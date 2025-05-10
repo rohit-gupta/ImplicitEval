@@ -4,11 +4,24 @@
     <h1>Video Question</h1>
     
     {% if question %}
-        <div>
+        <div class="video-container">
             <video id="video-player" controls>
                 <source src="{{ video_url }}" type="video/mp4">
                 Your browser does not support the video tag.
             </video>
+            
+            <!-- Custom video progress bar with markers -->
+            <div class="custom-progress-container">
+                <div class="custom-progress-bar">
+                    <div class="progress-track"></div>
+                    <div class="progress-fill"></div>
+                    <div class="marker start-marker" title="Start Time"></div>
+                    <div class="marker end-marker" title="End Time"></div>
+                </div>
+                <div class="time-display">
+                    <span id="current-time">0:00</span> / <span id="total-time">0:00</span>
+                </div>
+            </div>
         </div>
         
         <div>
@@ -23,13 +36,6 @@
                         <div class="option">
                             <input type="radio" id="option-{{ option_key }}" name="selected_choice" value="{{ option_key }}" required>
                             <label for="option-{{ option_key }}">{{ option_key }}. {{ option_text }}</label>
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    {% for choice in question.answer_choices %}
-                        <div class="option">
-                            <input type="radio" id="option-{{ loop.index0 }}" name="selected_choice" value="{{ loop.index0 }}" required>
-                            <label for="option-{{ loop.index0 }}">{{ choice }}</label>
                         </div>
                     {% endfor %}
                 {% endif %}
@@ -48,14 +54,246 @@
             </form>
         </div>
         
+        <style>
+            .video-container {
+                margin-bottom: 20px;
+                text-align: center; /* Center the video */
+            }
+            
+            video {
+                max-width: 100%; /* Prevent overflow beyond container */
+                height: auto; /* Maintain aspect ratio */
+                display: inline-block; /* Allow centering */
+                width: auto !important; /* Override any width settings to use native resolution */
+            }
+            
+            .custom-progress-container {
+                margin-top: 5px;
+                padding: 0 5px;
+                max-width: 640px; /* Set a reasonable max width for progress bar */
+                margin-left: auto;
+                margin-right: auto;
+            }
+            
+            .custom-progress-bar {
+                position: relative;
+                height: 20px;
+                background: #f0f0f0;
+                border-radius: 3px;
+                margin-bottom: 5px;
+            }
+            
+            .progress-track {
+                position: absolute;
+                top: 0;
+                left: 0;
+                height: 100%;
+                width: 100%;
+                background: #ddd;
+                border-radius: 3px;
+            }
+            
+            .progress-fill {
+                position: absolute;
+                top: 0;
+                left: 0;
+                height: 100%;
+                width: 0;
+                background: #4285f4;
+                border-radius: 3px;
+                transition: width 0.1s linear;
+            }
+            
+            .marker {
+                position: absolute;
+                top: 0;
+                width: 2px;
+                height: 100%;
+                z-index: 2;
+            }
+            
+            .start-marker {
+                background-color: #00C853;
+            }
+            
+            .end-marker {
+                background-color: #FF3D00;
+            }
+            
+            .time-display {
+                display: flex;
+                justify-content: space-between;
+                font-size: 0.9em;
+                color: #555;
+            }
+            
+            .current-segment {
+                background-color: rgba(0, 200, 83, 0.2);
+                position: absolute;
+                height: 100%;
+                top: 0;
+                z-index: 1;
+            }
+        </style>
+        
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 const video = document.getElementById('video-player');
+                const progressFill = document.querySelector('.progress-fill');
+                const startMarker = document.querySelector('.start-marker');
+                const endMarker = document.querySelector('.end-marker');
+                const progressBar = document.querySelector('.custom-progress-bar');
+                const currentTimeDisplay = document.getElementById('current-time');
+                const totalTimeDisplay = document.getElementById('total-time');
+                
                 {% if question.question_start_time %}
-                    video.addEventListener('loadedmetadata', function() {
-                        video.currentTime = {{ question.question_start_time }};
-                    });
+                const startTime = {{ question.question_start_time }};
+                {% else %}
+                const startTime = 0;
                 {% endif %}
+                
+                {% if question.question_stop_time %}
+                const stopTime = {{ question.question_stop_time }};
+                {% else %}
+                const stopTime = null;
+                {% endif %}
+                
+                // Create a segment indicator
+                const segmentIndicator = document.createElement('div');
+                segmentIndicator.className = 'current-segment';
+                progressBar.appendChild(segmentIndicator);
+                
+                // Format time for display (MM:SS)
+                function formatTime(seconds) {
+                    const minutes = Math.floor(seconds / 60);
+                    const remainingSeconds = Math.floor(seconds % 60);
+                    return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
+                }
+                
+                let videoReady = false;
+                let seekAttempts = 0;
+                const maxSeekAttempts = 5;
+                
+                // Handle seeking to the start time properly
+                function seekToStartTime() {
+                    if (seekAttempts >= maxSeekAttempts) {
+                        console.log("Max seek attempts reached");
+                        return;
+                    }
+                    
+                    if (video.readyState >= 2) { // HAVE_CURRENT_DATA or better
+                        video.currentTime = startTime;
+                        videoReady = true;
+                        seekAttempts = 0;
+                    } else {
+                        seekAttempts++;
+                        setTimeout(seekToStartTime, 200); // Try again in 200ms
+                    }
+                }
+                
+                // Listen for canplay event
+                video.addEventListener('canplay', function() {
+                    if (!videoReady) {
+                        seekToStartTime();
+                    }
+                });
+                
+                // Set up the video when metadata is loaded
+                video.addEventListener('loadedmetadata', function() {
+                    // First attempt to set start time
+                    seekToStartTime();
+                    
+                    // Update total time display
+                    totalTimeDisplay.textContent = formatTime(video.duration);
+                    
+                    // Position markers
+                    const startPosition = (startTime / video.duration) * 100;
+                    startMarker.style.left = `${startPosition}%`;
+                    startMarker.title = `Start: ${formatTime(startTime)}`;
+                    
+                    if (stopTime !== null) {
+                        const stopPosition = (stopTime / video.duration) * 100;
+                        endMarker.style.left = `${stopPosition}%`;
+                        endMarker.title = `End: ${formatTime(stopTime)}`;
+                        
+                        // Position and size the segment indicator
+                        segmentIndicator.style.left = `${startPosition}%`;
+                        segmentIndicator.style.width = `${stopPosition - startPosition}%`;
+                    } else {
+                        endMarker.style.display = 'none';
+                        
+                        // Segment from start to end of video
+                        segmentIndicator.style.left = `${startPosition}%`;
+                        segmentIndicator.style.width = `${100 - startPosition}%`;
+                    }
+                    
+                    // Make sure the progress container width matches the video width
+                    const progressContainer = document.querySelector('.custom-progress-container');
+                    progressContainer.style.maxWidth = Math.min(video.clientWidth, 640) + 'px';
+                });
+                
+                // Update progress bar and time display
+                video.addEventListener('timeupdate', function() {
+                    // Update progress fill
+                    const progress = (video.currentTime / video.duration) * 100;
+                    progressFill.style.width = `${progress}%`;
+                    
+                    // Update current time display
+                    currentTimeDisplay.textContent = formatTime(video.currentTime);
+                    
+                    // If video goes beyond stop time, reset to start time
+                    if (stopTime !== null && video.currentTime >= stopTime) {
+                        video.pause();
+                        // Add a slight delay before resetting to start time
+                        setTimeout(function() {
+                            video.currentTime = startTime;
+                        }, 500);
+                    }
+                    
+                    // Prevent seeking before start time
+                    if (video.currentTime < startTime) {
+                        video.currentTime = startTime;
+                    }
+                });
+                
+                // Handle seeking attempts
+                video.addEventListener('seeking', function() {
+                    if (video.currentTime < startTime) {
+                        video.currentTime = startTime;
+                    }
+                    if (stopTime !== null && video.currentTime > stopTime) {
+                        video.currentTime = startTime;
+                    }
+                });
+                
+                // Add play event listener to ensure video starts at the correct time
+                video.addEventListener('play', function() {
+                    if (video.currentTime < startTime) {
+                        video.currentTime = startTime;
+                    }
+                });
+                
+                // Allow clicking on the progress bar to seek
+                progressBar.addEventListener('click', function(e) {
+                    const rect = progressBar.getBoundingClientRect();
+                    const pos = (e.clientX - rect.left) / rect.width;
+                    const seekTime = pos * video.duration;
+                    
+                    // Only seek within the allowed range
+                    if (seekTime >= startTime && (stopTime === null || seekTime <= stopTime)) {
+                        video.currentTime = seekTime;
+                    } else if (seekTime < startTime) {
+                        video.currentTime = startTime;
+                    } else if (stopTime !== null && seekTime > stopTime) {
+                        video.currentTime = startTime;
+                    }
+                });
+                
+                // Adjust progress container if video size changes
+                window.addEventListener('resize', function() {
+                    const progressContainer = document.querySelector('.custom-progress-container');
+                    progressContainer.style.maxWidth = Math.min(video.clientWidth, 640) + 'px';
+                });
             });
         </script>
     {% else %}
@@ -63,4 +301,3 @@
         <a href="{{ url_for('stats') }}">View Stats</a>
     {% endif %}
 {% endblock %}
-

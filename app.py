@@ -8,7 +8,7 @@ app = Flask(__name__)
 app.secret_key = 'dev-key'
 DATA_DIR = 'data'
 os.makedirs(DATA_DIR, exist_ok=True)
-QUESTIONS_FILE = os.path.join(DATA_DIR, 'questions.jsonl')
+QUESTIONS_FILE = os.path.join(DATA_DIR, 'questions_clean.jsonl')
 USERS_FILE = os.path.join(DATA_DIR, 'users.csv')
 ANSWERS_FILE = os.path.join(DATA_DIR, 'answers.csv')
 LABELS_FILE = os.path.join(DATA_DIR, 'question_labels.csv')
@@ -112,7 +112,7 @@ def import_questions():
                         try:
                             question = json.loads(line.decode('utf-8'))
                             if all(k in question for k in ['video_id', 'question_id', 'question_text', 
-                                                           'answer_choices', 'correct_answer', 'final_category']):
+                                                           'options', 'answer_choice', 'final_category']):
                                 outfile.write(json.dumps(question) + '\n')
                                 imported += 1
                         except json.JSONDecodeError:
@@ -229,12 +229,8 @@ def submit_answer():
                 ])
     
     # Determine if answer is correct
-    if 'options' in question:
-        options = list(question['options'].keys())
-        correct_answer = options[int(question['correct_answer'])]
-        is_correct = 1 if selected_choice == correct_answer else 0
-    else:
-        is_correct = 1 if selected_choice == question['correct_answer'] else 0
+    # Compare selected option with the correct answer
+    is_correct = 1 if selected_choice == question['answer_choice'] else 0
     
     # Record answer
     with open(ANSWERS_FILE, 'a', newline='') as f:
@@ -284,7 +280,7 @@ def stats():
             
             # Update category stats if question exists
             if qid in questions:
-                category = questions[qid]['final_category']
+                category = questions[qid]['final_category']  # Use final_category instead of category
                 cat_stats[category][0] += int(correct)
                 cat_stats[category][1] += 1
                 user_cat_stats[username][category][0] += int(correct)
